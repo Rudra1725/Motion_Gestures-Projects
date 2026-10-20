@@ -4,16 +4,16 @@ import mediapipe as mp
 import numpy as np
 import pygame
 
-# --- 1. Pygame Audio Setup ---
+
 pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=512)
 pygame.mixer.init()
 
-# Primary target directory for all media
-ASSETS_DIR = r"C:\Users\Rudra\Downloads\codes\Python\Assets"
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR = os.path.join(SCRIPT_DIR, "Assets")
+
 SEARCH_DIRS = [
     ASSETS_DIR,
-    os.path.join(SCRIPT_DIR, "Assets"),
     SCRIPT_DIR,
     os.path.abspath(os.path.join(SCRIPT_DIR, "..", "Assets")),
     os.path.abspath(os.path.join(SCRIPT_DIR, "..")),
@@ -28,10 +28,10 @@ def load_sound(name_list):
                 try:
                     s = pygame.mixer.Sound(path)
                     s.set_volume(1.0)
-                    print(f"[+] Loaded Audio ({name}): {path}")
+                    print(f"[+] Loaded Audio ({name})")
                     return s
                 except Exception as e:
-                    print(f"[-] Failed loading audio {path}: {e}")
+                    print(f"[-] Failed loading audio ({name}): {e}")
     return None
 
 
@@ -43,13 +43,13 @@ kuchu_sound = load_sound(["kuchu_clean.wav", "kuchu.wav", "kuchu.mp3"])
 rom_sound = load_sound(["rom_clean.wav", "rom.wav", "rom.mp3"])
 faaah_sound = load_sound(["faaah_clean.wav", "faaah.wav", "faaah.mp3"])
 
-# --- 2. Video & Meme Images Setup ---
+
 video_file = None
 for folder in SEARCH_DIRS:
     candidate = os.path.join(folder, "jaldi.mp4")
     if os.path.exists(candidate):
         video_file = candidate
-        print(f"[+] Loaded Video: {candidate}")
+        print("[+] Loaded Video (jaldi.mp4)")
         break
 
 video_cap = cv2.VideoCapture(video_file) if video_file else None
@@ -62,7 +62,7 @@ def load_image(names):
             if os.path.exists(target):
                 img = cv2.imread(target)
                 if img is not None:
-                    print(f"[+] Loaded Image ({name}): {target}")
+                    print(f"[+] Loaded Image ({name})")
                     return img
     return None
 
