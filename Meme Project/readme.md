@@ -6,7 +6,6 @@ A real-time computer vision application that detects facial expressions and hand
 [![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-green?logo=opencv)](https://opencv.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Face%20%26%20Hand%20Tracking-orange)](https://developers.google.com/mediapipe)
 [![Pygame-CE](https://img.shields.io/badge/Pygame--CE-Audio%20Engine-red)](https://pyga.me/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
