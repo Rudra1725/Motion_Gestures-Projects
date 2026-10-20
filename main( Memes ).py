@@ -4,25 +4,34 @@ import mediapipe as mp
 import numpy as np
 import pygame
 
+
 pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=512)
 pygame.mixer.init()
 
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PARENT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+ASSETS_DIR = os.path.join(SCRIPT_DIR, "Assets")
+
+SEARCH_DIRS = [
+    ASSETS_DIR,
+    SCRIPT_DIR,
+    os.path.abspath(os.path.join(SCRIPT_DIR, "..", "Assets")),
+    os.path.abspath(os.path.join(SCRIPT_DIR, "..")),
+]
 
 
 def load_sound(name_list):
-    for name in name_list:
-        for folder in [SCRIPT_DIR, PARENT_DIR]:
+    for folder in SEARCH_DIRS:
+        for name in name_list:
             path = os.path.abspath(os.path.join(folder, name))
             if os.path.exists(path):
                 try:
                     s = pygame.mixer.Sound(path)
                     s.set_volume(1.0)
-                    print(f"[+] Loaded audio: {path}")
+                    print(f"[+] Loaded Audio ({name})")
                     return s
                 except Exception as e:
-                    print(f"[-] Failed loading {path}: {e}")
+                    print(f"[-] Failed loading audio ({name}): {e}")
     return None
 
 
@@ -34,24 +43,26 @@ kuchu_sound = load_sound(["kuchu_clean.wav", "kuchu.wav", "kuchu.mp3"])
 rom_sound = load_sound(["rom_clean.wav", "rom.wav", "rom.mp3"])
 faaah_sound = load_sound(["faaah_clean.wav", "faaah.wav", "faaah.mp3"])
 
-# --- 2. Video & Meme Images Setup ---
+
 video_file = None
-for p in [os.path.join(SCRIPT_DIR, "jaldi.mp4"), os.path.join(PARENT_DIR, "jaldi.mp4")]:
-    if os.path.exists(p):
-        video_file = p
+for folder in SEARCH_DIRS:
+    candidate = os.path.join(folder, "jaldi.mp4")
+    if os.path.exists(candidate):
+        video_file = candidate
+        print("[+] Loaded Video (jaldi.mp4)")
         break
 
 video_cap = cv2.VideoCapture(video_file) if video_file else None
 
 
 def load_image(names):
-    for name in names:
-        for folder in [SCRIPT_DIR, PARENT_DIR]:
+    for folder in SEARCH_DIRS:
+        for name in names:
             target = os.path.join(folder, name)
             if os.path.exists(target):
                 img = cv2.imread(target)
                 if img is not None:
-                    print(f"[+] Loaded image: {target}")
+                    print(f"[+] Loaded Image ({name})")
                     return img
     return None
 
@@ -457,7 +468,7 @@ while cap.isOpened():
         slide_offset = (1.0 - anim_alpha) * SLIDE_MAX
         frame = animated_overlay(frame, current_overlay_content, fx, fy, fw, fh, anim_alpha, slide_offset)
 
-    # --- Unified Audio Router (Synchronized with Shock) ---
+    # --- Unified Audio Router ---
     target_sound = None
     target_name = None
 
