@@ -4,7 +4,6 @@ import mediapipe as mp
 import numpy as np
 import pygame
 
-# --- 1. Pygame Audio Setup ---
 pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=512)
 pygame.mixer.init()
 
