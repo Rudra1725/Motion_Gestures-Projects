@@ -1,4 +1,3 @@
-```markdown
 # Meme Gesture Controller 🎭🖐️
 
 A real-time computer vision application that detects facial expressions and hand gestures to dynamically overlay memes/videos onto your face and play synchronized audio effects using OpenCV, MediaPipe, and Pygame.
@@ -52,57 +51,3 @@ meme-gesture-controller/
     ├── faaah.mp3
     ├── kuchu.mp3
     └── rom.mp3
-
-```
-
----
-
-## 🚀 Getting Started
-
-### 1. Prerequisites
-
-* Python 3.10 to 3.12 installed
-* A functional webcam and audio output device
-
-### 2. Clone the Repository
-
-```bash
-git clone [https://github.com/](https://github.com/)<your-username>/meme-gesture-controller.git
-cd meme-gesture-controller
-
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-
-```
-
-### 4. Setup Media Assets
-
-Place all your images (`.jpg`, `.png`), video clips (`.mp4`), and audio tracks (`.mp3`, `.wav`) inside the `Assets/` directory matching the names listed in the mapping table.
-
-### 5. Run the Controller
-
-```bash
-python app.py
-
-```
-
-* Press **`q`** inside the webcam window to exit and release system resources.
-
----
-
-## 🛠️ Built With
-
-* **[OpenCV](https://opencv.org/)** - Real-time video frame capture, matrix transforms, and alpha blending.
-* **[MediaPipe](https://developers.google.com/mediapipe)** - Face Mesh (468 3D facial landmarks) and Hand Tracking.
-* **[Pygame-CE](https://pyga.me/)** - Dedicated sound engine and audio channel management.
-* **[NumPy](https://numpy.org/)** - Vector math for landmark distances and aspect ratios.
-
-```
-
-<FollowUp label="Would you like a .gitignore file tailored for Python and media assets to keep your GitHub repo clean?" query="Provide a clean .gitignore file for this Python OpenCV and MediaPipe project."/>
-
-```
