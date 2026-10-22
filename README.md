@@ -1,4 +1,4 @@
-# 👁️ OpenCV & MediaPipe Playbook
+# 👁️ Python-OpenCV & MediaPipe Playbook
 
 <p align="center">
   <strong>Exploring Computer Vision Through Python Projects</strong>
