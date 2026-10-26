@@ -1,17 +1,19 @@
 import os
+import sys
 import cv2
 import numpy as np
 import mediapipe as mp
 import pygame
 from collections import deque
 
-AUDIO_PATH = r"C:\Users\Rudra\Downloads\codes\Python\Assets\uth.mp3"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+AUDIO_PATH = os.path.join(BASE_DIR, "assets", "uth.mp3")
 
 pygame.mixer.init()
 if os.path.exists(AUDIO_PATH):
     pygame.mixer.music.load(AUDIO_PATH)
 else:
-    print(f"File not found: {AUDIO_PATH}")
+    print(f"[!] Warning: Audio track missing at {AUDIO_PATH}")
 
 mp_mesh = mp.solutions.face_mesh
 detector = mp_mesh.FaceMesh(
@@ -81,104 +83,121 @@ def draw_hud_box(img, x, y, bw, bh, alpha=0.65):
     cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
     cv2.rectangle(img, (x, y), (x + bw, y + bh), (60, 60, 60), 1)
 
-cap = cv2.VideoCapture(0)
+def run():
+    global calibrated, calib_frames, base_ears, base_pitches
+    global ear_limit, pitch_limit, counter, alarm_on
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("[!] Error: Could not access default webcam.")
+        sys.exit(1)
 
-    frame = cv2.flip(frame, 1)
-    h, w, _ = frame.shape
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    res = detector.process(rgb)
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-    status_flag = False
-    ear_val, pitch_val = 0.0, 0.0
+        frame = cv2.flip(frame, 1)
+        h, w, _ = frame.shape
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        res = detector.process(rgb)
 
-    if res.multi_face_landmarks:
-        lm = res.multi_face_landmarks[0].landmark
-        raw_ear = (get_ear(lm, L_EYE, w, h) + get_ear(lm, R_EYE, w, h)) / 2.0
-        raw_pitch = get_pitch(lm, w, h)
+        status_flag = False
+        ear_val, pitch_val = 0.0, 0.0
 
-        ear_window.append(raw_ear)
-        pitch_window.append(raw_pitch)
+        if res.multi_face_landmarks:
+            lm = res.multi_face_landmarks[0].landmark
+            raw_ear = (get_ear(lm, L_EYE, w, h) + get_ear(lm, R_EYE, w, h)) / 2.0
+            raw_pitch = get_pitch(lm, w, h)
 
-        ear_val = float(np.median(ear_window))
-        pitch_val = float(np.median(pitch_window))
+            ear_window.append(raw_ear)
+            pitch_window.append(raw_pitch)
 
-        if not calibrated:
-            base_ears.append(ear_val)
-            base_pitches.append(pitch_val)
-            calib_frames += 1
+            ear_val = float(np.median(ear_window))
+            pitch_val = float(np.median(pitch_window))
 
-            draw_hud_box(frame, w // 2 - 180, h // 2 - 35, 360, 70, alpha=0.85)
-            cv2.putText(frame, f"Calibrating... {int((calib_frames / calib_target) * 100)}%",
-                        (w // 2 - 140, h // 2 + 10), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 215, 255), 1)
+            if not calibrated:
+                base_ears.append(ear_val)
+                base_pitches.append(pitch_val)
+                calib_frames += 1
 
-            if calib_frames >= calib_target:
-                median_base_ear = float(np.median(base_ears))
-                median_base_pitch = float(np.median(base_pitches))
-                
-                ear_limit = round(median_base_ear * 0.72, 2)
-                pitch_limit = round(median_base_pitch - 14.0, 1)
-                calibrated = True
+                draw_hud_box(frame, w // 2 - 180, h // 2 - 35, 360, 70, alpha=0.85)
+                progress = int((calib_frames / calib_target) * 100)
+                cv2.putText(frame, f"Calibrating... {progress}%",
+                            (w // 2 - 140, h // 2 + 10), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 215, 255), 1)
 
-            cv2.imshow("Monitor", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-            continue
+                if calib_frames >= calib_target:
+                    median_base_ear = float(np.median(base_ears))
+                    median_base_pitch = float(np.median(base_pitches))
+                    
+                    ear_limit = round(median_base_ear * 0.72, 2)
+                    pitch_limit = round(median_base_pitch - 14.0, 1)
+                    calibrated = True
 
-        eyes_shut = ear_val < ear_limit
-        head_down = pitch_val < pitch_limit
+                cv2.imshow("Driver Safety Monitor", frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+                continue
 
-        if eyes_shut or head_down:
+            eyes_shut = ear_val < ear_limit
+            head_down = pitch_val < pitch_limit
+
+            if eyes_shut or head_down:
+                status_flag = True
+
+        elif calibrated:
             status_flag = True
 
-    elif calibrated:
-        status_flag = True
+        if calibrated:
+            if status_flag:
+                counter += 1
+                if counter >= consec_limit:
+                    if not alarm_on and os.path.exists(AUDIO_PATH):
+                        pygame.mixer.music.play(-1)
+                        alarm_on = True
+            else:
+                counter = 0
+                if alarm_on:
+                    pygame.mixer.music.stop()
+                    alarm_on = False
 
-    if calibrated:
-        if status_flag:
-            counter += 1
-            if counter >= consec_limit:
-                if not alarm_on and os.path.exists(AUDIO_PATH):
-                    pygame.mixer.music.play(-1)
-                    alarm_on = True
-        else:
-            counter = 0
+            draw_hud_box(frame, 20, 20, 280, 105)
+
+            ear_col = (70, 220, 70) if ear_val >= ear_limit else (60, 60, 255)
+            pitch_col = (70, 220, 70) if pitch_val >= pitch_limit else (60, 60, 255)
+
+            cv2.putText(frame, f"EAR    : {ear_val:.2f} (Cut: {ear_limit:.2f})", (35, 50),
+                        cv2.FONT_HERSHEY_DUPLEX, 0.55, ear_col, 1)
+            cv2.putText(frame, f"PITCH  : {pitch_val:.1f} deg (Cut: {pitch_limit:.1f})", (35, 78),
+                        cv2.FONT_HERSHEY_DUPLEX, 0.55, pitch_col, 1)
+
+            dot_col = (0, 0, 255) if alarm_on else (0, 220, 0)
+            cv2.circle(frame, (275, 38), 6, dot_col, -1)
+
             if alarm_on:
-                pygame.mixer.music.stop()
-                alarm_on = False
+                alert_box_w, alert_box_h = 320, 70
+                ax = (w - alert_box_w) // 2
+                ay = (h - alert_box_h) // 2
+                draw_hud_box(frame, ax, ay, alert_box_w, alert_box_h, alpha=0.9)
+                cv2.rectangle(frame, (ax, ay), (ax + alert_box_w, ay + alert_box_h), (0, 0, 230), 2)
+                cv2.putText(frame, "WAKE UP!", (ax + 55, ay + 48), cv2.FONT_HERSHEY_DUPLEX, 1.2, (0, 0, 255), 2)
 
-        draw_hud_box(frame, 20, 20, 280, 105)
+        cv2.imshow("Driver Safety Monitor", frame)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            break
+        elif key == ord('c'):
+            calibrated = False
+            calib_frames = 0
+            base_ears.clear()
+            base_pitches.clear()
 
-        ear_col = (70, 220, 70) if ear_val >= ear_limit else (60, 60, 255)
-        pitch_col = (70, 220, 70) if pitch_val >= pitch_limit else (60, 60, 255)
+    if pygame.mixer.get_init():
+        pygame.mixer.music.stop()
+        pygame.mixer.quit()
 
-        cv2.putText(frame, f"EAR    : {ear_val:.2f} (Cut: {ear_limit:.2f})", (35, 50),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.55, ear_col, 1)
-        cv2.putText(frame, f"PITCH  : {pitch_val:.1f} deg (Cut: {pitch_limit:.1f})", (35, 78),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.55, pitch_col, 1)
+    cap.release()
+    cv2.destroyAllWindows()
 
-        dot_col = (0, 0, 255) if alarm_on else (0, 220, 0)
-        cv2.circle(frame, (275, 38), 6, dot_col, -1)
-
-        if alarm_on:
-            alert_box_w, alert_box_h = 320, 70
-            ax = (w - alert_box_w) // 2
-            ay = (h - alert_box_h) // 2
-            draw_hud_box(frame, ax, ay, alert_box_w, alert_box_h, alpha=0.9)
-            cv2.rectangle(frame, (ax, ay), (ax + alert_box_w, ay + alert_box_h), (0, 0, 230), 2)
-            cv2.putText(frame, "WAKE UP!", (ax + 55, ay + 48), cv2.FONT_HERSHEY_DUPLEX, 1.2, (0, 0, 255), 2)
-
-    cv2.imshow("Monitor", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-if pygame.mixer.get_init():
-    pygame.mixer.music.stop()
-    pygame.mixer.quit()
-
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    run()
