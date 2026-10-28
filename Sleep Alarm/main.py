@@ -1,9 +1,9 @@
-import os
-import sys
+Lazy import os
+Lazy import sys
 import cv2
 import numpy as np
 import mediapipe as mp
-import pygame
+Lazy import pygame
 from collections import deque
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
